@@ -1,3 +1,4 @@
+import { setupConsole } from "./console.js";
 /* Apex Dash v2 · painel (celular) */
 import { ApexLink, ApexRoom } from "./link.js";
 
@@ -154,7 +155,21 @@ function onNewAlert(x,worse){var now=performance.now();
 function ackCrit(){var a=activeAlerts().filter(function(x){return x.lv===3});if(!a.length){demo("Nenhum alerta crítico ativo.");return}
   a.forEach(function(x){ack[x.id]=true});critStart=-1e9;lastBeep=performance.now();demo("Alerta crítico reconhecido: o tom virou lembrete a cada 5 s. A faixa continua até a causa sumir.")}
 
-var actx=null;
+var actx=null, engineTone=null, engineGain=null;
+$("#motorVolume").oninput=function(){settings.motorVolume=Number(this.value);$("#motorLevel").textContent=this.value+"%";save()};
+function updateEngine(){
+  if(!actx)return;
+  const volume=S.on&&!document.hidden?(settings.motorVolume||0)/100:0;
+  if(!volume&&!engineTone)return;
+  if(!engineTone){
+    engineTone=actx.createOscillator();engineGain=actx.createGain();
+    engineTone.type="triangle";engineGain.gain.value=0;
+    engineTone.connect(engineGain);engineGain.connect(actx.destination);engineTone.start();
+  }
+  engineTone.frequency.setTargetAtTime(Math.max(30,S.rpm/30),actx.currentTime,.08);
+  engineGain.gain.setTargetAtTime(volume*.08,actx.currentTime,.04);
+}
+document.addEventListener("visibilitychange",updateEngine);
 function tone(freq,dur,crit){if(!actx)return;try{var o=actx.createOscillator(),g=actx.createGain();o.type="square";o.frequency.value=freq;g.gain.value=.0001;o.connect(g);g.connect(actx.destination);
   var vol=crit?Math.max(settings.vol,70):settings.vol,t=actx.currentTime,pk=.16*(vol/100);g.gain.exponentialRampToValueAtTime(Math.max(pk,.0002),t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.start(t);o.stop(t+dur+.02)}catch(e){}}
 
@@ -170,7 +185,7 @@ function snapS(){undoS.push(clone(settings));if(undoS.length>30)undoS.shift();$(
 function applyTheme(){var d=$("#dash"),th=settings.theme;if(th==="auto")th=S.amb<25?"noturno":S.amb>72?"sol":"pista";
   d.classList.remove("theme-pista","theme-noturno","theme-sol");d.classList.add("theme-"+th);d.classList.toggle("tips",!!settings.tips);
   document.body.style.background=th==="sol"?"#F2F3F4":"#000"}
-function syncSettings(){
+function syncSettings(){ $("#motorVolume").value=settings.motorVolume||0; $("#motorLevel").textContent=(settings.motorVolume||0)+"%";
   [["sWW","ww","oWW"," °C"],["sWC","wc","oWC"," °C"],["sOW","ow","oOW"," °C"],["sOC","oc","oOC"," °C"],["sFW","fw","oFW","%"],["sVol","vol","oVol","%"]].forEach(function(a){$("#"+a[0]).value=settings[a[1]];$("#"+a[2]).textContent=settings[a[1]]+a[3]});
   var s=$("#swSnd");s.setAttribute("aria-checked",settings.snd2);$(".st",s).textContent=settings.snd2?"Sim":"Não";
   var t=$("#swTips");t.setAttribute("aria-checked",settings.tips);$(".st",t).textContent=settings.tips?"Sim":"Não";
@@ -194,7 +209,7 @@ $("#tests").addEventListener("click",function(e){var b=e.target.closest("[data-t
 /* ---------- edição de layout ---------- */
 var undoL=[],chSlot=null;
 function snapL(){undoL.push(clone(lay));if(undoL.length>30)undoL.shift();$("#eUndo").disabled=false}
-$("#pgrid").addEventListener("click",function(e){var sl=e.target.closest(".slot");if(!sl)return;if(S.editing||(!moving()&&S.view==="painel"))openChooser(sl.dataset.slot)});
+$("#pgrid").addEventListener("click",function(e){var sl=e.target.closest(".slot");if(!sl)return;if(S.editing||(!moving()&&S.view==="painel"))panelConsole.edit()});
 function openChooser(k){chSlot=k;$("#chTitle").textContent="Posição: "+SLOTNAME[k].toLowerCase();$("#chSub").textContent="Escolha o que mostrar. Se o item já estiver em outra posição, os dois trocam de lugar.";
   $("#chOpts").innerHTML=["water","oil","boost","fuel","lap","empty"].map(function(id){return '<button data-pick="'+id+'" aria-pressed="'+(lay[k]===id)+'">'+SYM[id]+NAME[id]+'</button>'}).join("");
   $("#chooser").classList.add("on");$("#chOpts button").focus()}
@@ -212,7 +227,7 @@ $("#eDone").addEventListener("click",function(){setView("painel")});
 /* ---------- navegação (só parado) ---------- */
 function moving(){return S.car==="track"||S.v>=5}
 function setView(v){if(moving()&&v!=="painel")return;
-  S.editing=v==="editar";var view=S.editing?"painel":v;S.view=view;closeChooser();
+  if(v==="editar"){panelConsole.edit();return} panelConsole.leave(); S.editing=false;var view=S.editing?"painel":v;S.view=view;closeChooser();
   $$(".view").forEach(function(x){x.classList.toggle("on",x.id==="v-"+view)});
   $$("#nav button").forEach(function(b){if(b.dataset.view===view)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current")});
   $("#dash").classList.toggle("editing",S.editing);
@@ -252,7 +267,7 @@ function finishLap(){var l={n:S.lapN,time:S.lapT,cp:S.cp.slice(),sp:S.sp.slice()
   if(l.time<pb.time)transient.push({id:"best"+l.n,lv:1,v:0,t:"Melhor volta: "+fmtLap2(l.time),d:fmtD(l.time-pb.time)+" s sobre a anterior",until:performance.now()+6000});
   S.lapN++;S.p=0;S.lapT=0;S.cp=[0];S.sp=[S.v];S.nextCp=1;S.pace=.975+Math.random()*.05}
 var lastDelta=0;
-function render(){var now=performance.now(),R=230,arcLen=Math.PI*R,rv=clamp(S.rpm/8000,0,1),hot=S.rpm>=SHIFT;
+function render(){updateEngine();panelConsole.update();var now=performance.now(),R=230,arcLen=Math.PI*R,rv=clamp(S.rpm/8000,0,1),hot=S.rpm>=SHIFT;
   var arc=$("#rpmArc");arc.setAttribute("stroke-dasharray",(rv*arcLen).toFixed(1)+" "+arcLen.toFixed(1));arc.setAttribute("stroke",hot?"var(--amber)":"var(--text)");
   $("#gear").textContent=S.gear?S.gear:"N";$("#spd").textContent=Math.round(S.v);$("#rpmv").textContent=thou(Math.round(S.rpm/10)*10)+" rpm";
   var n=clamp(Math.floor((S.rpm-5000)/150),0,10);$$("#leds rect").forEach(function(el,i){var on=hot||i<n;el.setAttribute("fill",on?(hot?"var(--amber)":"var(--text)"):"var(--card2)");el.setAttribute("stroke",on&&hot?"var(--amber)":"var(--line)")});
@@ -274,11 +289,11 @@ function boot(){var sp=$("#splash");if(S.on||sp.classList.contains("booting"))re
   if(!MIRROR){try{if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume()}catch(e){}keepAwake()}
   sp.classList.add("booting");setTimeout(function(){sp.classList.add("off");sp.classList.remove("booting");S.on=true;last=performance.now();posFive();fsButton();queueStatus()},1600)}
 $("#splash").addEventListener("click",function(){goFull();boot()});
-function reboot(){S.on=false;$("#splash").classList.remove("off");closeChooser();demo("Painel religado: toque na tela do celular para ligar.");if(MIRROR)setTimeout(boot,1200)}
+function reboot(){panelConsole.leave();S.on=false;updateEngine();$("#splash").classList.remove("off");closeChooser();demo("Painel religado: toque na tela do celular para ligar.");if(MIRROR)setTimeout(boot,1200)}
 
 /* ---------- comandos (os mesmos do painel de demonstração do protótipo) ---------- */
 function setCar(c){if((c!=="track"&&c!=="parked")||c===S.car)return;S.car=c;
-  if(c==="track"){S.p=0;S.lapT=0;S.cp=[0];S.sp=[0];S.nextCp=1;S.pace=1}
+  if(c==="track"){setView("painel");S.p=0;S.lapT=0;S.cp=[0];S.sp=[0];S.nextCp=1;S.pace=1}
   demo(c==="track"?"Em movimento: só telemetria na tela.":"Parado: Painel, Voltas e Ajustes liberados quando a velocidade cair abaixo de 5 km/h.")}
 var SIMTXT={water:"água do motor esquentando",oil:"óleo esquentando",boost:"turbo acima do limite",fuel:"combustível acabando",clear:"tudo voltando ao normal"};
 function sim(k){if(!SIMTXT[k])return;
@@ -292,7 +307,7 @@ function posFive(){var f=$("#fivedeg"),dsz=325;var gy=104+235,dy=104+450+6+42,my
   f.style.width=dsz+"px";f.style.height=dsz+"px";f.style.left=(640-dsz/2)+"px";f.style.top=(my-dsz/2)+"px"}
 
 /* teclado (útil quando o painel está aberto no próprio PC, ligado a um projetor) */
-document.addEventListener("keydown",function(e){var t=e.target;if(t&&t.tagName==="INPUT")return;
+document.addEventListener("keydown",function(e){var t=e.target;if(t?.closest("input,select,summary,button,details"))return;
   if(e.code==="Space"){e.preventDefault();if(t&&t.blur)t.blur();ackCrit();return}
   var k={"1":"water","2":"oil","3":"boost","4":"fuel","0":"clear"}[e.key];if(k){sim(k);return}
   if(e.key==="p"||e.key==="P"){setCar(S.car==="track"?"parked":"track");return}
@@ -322,6 +337,7 @@ link=ApexLink({room:ROOM,role:"painel",net:!MIRROR,onMsg:onMsg,onState:function(
 /* sinal de vida a cada 8 s: o controle sabe se o celular continua com o painel aberto */
 if(!MIRROR)setInterval(function(){if(!document.hidden)sendStatus()},8000);
 
+const panelConsole=setupConsole({state:S,moving,legacy:()=>lay,setView,simulate:sim,drive:setCar,toast,lap:()=>fmtLap(S.lapT),mirror:MIRROR});
 renderSlots();syncSettings();updGauges();rescale();roomInfo();
 if(MIRROR){$("#splash").classList.add("off");S.on=true}
 })();
