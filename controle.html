@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apex Dash · controle remoto</title>
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/src/controle.css">
+</head>
+<body>
+<header class="top">
+  <svg viewBox="0 0 100 100" aria-hidden="true"><polygon points="50,6 88,76 68,76 50,40 32,76 12,76" fill="#3A3D42"/><path d="M8 70 Q54 38 96 36 Q58 52 22 80 Z" fill="#CC2A2A"/></svg>
+  <div><h1>APEX DASH · CONTROLE</h1><p>Interface Homem-Máquina · UFRR · telemetria simulada</p></div>
+  <div class="grow"></div>
+  <div class="pill" id="pill"><span class="dot" id="pillDot"></span><span id="pillTxt">Conectando…</span></div>
+</header>
+
+<main class="grid">
+  <!-- 1. conexão -->
+  <section class="c-conn">
+    <div class="card">
+      <h2>1 · Conectar o celular</h2>
+      <div class="code"><span class="small">Sala</span><output id="code">----</output><button class="btn" id="newRoom" type="button">Nova sala</button></div>
+      <div class="qr" id="qr"></div>
+      <div class="url"><code id="url"></code><button class="btn" id="copy" type="button">Copiar</button></div>
+      <ol class="small">
+        <li>O professor abre o link no celular (pela câmera, no QR).</li>
+        <li>Toca em <b>Ligar em tela cheia</b> e deita o celular.</li>
+        <li>Daqui, você dispara as situações.</li>
+      </ol>
+      <div class="warn" id="localWarn">O link está em <b>localhost</b>, que o celular não enxerga. Digite abaixo o endereço <b>Network</b> que o terminal mostrou (ex.: http://192.168.0.10:5173/), com o PC e o celular no mesmo Wi-Fi.</div>
+      <div class="field"><label for="base">Endereço do site para o celular</label><input id="base" inputmode="url" autocomplete="off" spellcheck="false"><span class="small" id="netInfo"></span></div>
+      <div class="field"><label for="codeIn">Usar o código que aparece no celular</label><input id="codeIn" maxlength="8" autocomplete="off" spellcheck="false" placeholder="ex.: K7Q2" style="text-transform:uppercase;letter-spacing:.15em;font-weight:700"></div>
+    </div>
+    <div class="card">
+      <h2>Painel no celular</h2>
+      <div class="conn"><span class="dot" id="dashDot"></span><div id="dashTxt">Nenhum painel nesta sala ainda</div></div>
+      <div class="meta"><span id="rtt"></span><span id="storeTxt"></span></div>
+      <button class="btn" id="ping" type="button" style="margin-top:12px">Testar conexão</button>
+      <div class="warn" id="memWarn">O servidor está guardando a sala só na memória. Na Vercel isso falha às vezes, porque cada pedido pode cair numa cópia diferente da função. Ligue o Redis da Upstash ao projeto (passo 4 do LEIAME) e publique de novo.</div>
+    </div>
+  </section>
+
+  <!-- 2. comandos -->
+  <section class="c-cmd">
+    <div class="card">
+      <h2>2 · Simular situação <small>teclas 1 a 4, 0 para normal</small></h2>
+      <div class="sims" id="sims"></div>
+      <button class="wheel" id="ack" type="button">Botão no volante: reconhecer alerta crítico<kbd>Espaço</kbd></button>
+      <p class="small" style="margin:8px 0 0">Reduz o tom contínuo a um lembrete a cada 5 s. A faixa vermelha continua até a causa sumir.</p>
+    </div>
+    <div class="card two">
+      <div>
+        <h2>Estado do carro</h2>
+        <div class="seg" id="carSeg"><button data-car="track" aria-pressed="true" type="button">Em pista</button><button data-car="parked" aria-pressed="false" type="button">Parado</button><kbd>tecla P</kbd></div>
+        <p class="small" style="margin-top:26px">Parado, o professor pode navegar e editar o layout no próprio celular.</p>
+      </div>
+      <div>
+        <h2>Luz ambiente</h2>
+        <input type="range" id="amb" min="0" max="100" value="50" aria-label="Luz ambiente, de noite a sol forte">
+        <div class="row"><span>Noite</span><span>Sol forte</span></div>
+        <p class="small">Com o tema em Auto, o painel troca para Noturno ou Sol forte.</p>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Demonstração</h2>
+      <label class="chk"><input type="checkbox" id="five">Mostrar o círculo de 5° (marcha e delta)</label>
+      <button class="btn" id="reboot" type="button" style="margin-top:6px">Religar o painel (tela de abertura)</button>
+      <h3>Comandos enviados</h3>
+      <ul class="log" id="log"><li class="small">Nenhum ainda.</li></ul>
+    </div>
+  </section>
+
+  <!-- 3. o que o painel mostra -->
+  <section class="c-live">
+    <div class="card">
+      <h2>No painel agora</h2>
+      <div class="alerts" id="alerts"><div class="al none">Aguardando o celular…</div></div>
+      <div class="msg" id="msg"></div>
+      <div class="meta" id="facts"></div>
+      <label class="chk" style="margin-top:10px"><input type="checkbox" id="mirrorOn">Mostrar espelho aqui (para o projetor)</label>
+      <div class="mirror" id="mirror"></div>
+      <p class="foot">O espelho roda a mesma simulação e recebe os mesmos comandos, sem som. Velocidade e tempos podem diferir um pouco do celular; os alertas são os mesmos.</p>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="module" src="/src/controle.js"></script>
+</body>
+</html>
