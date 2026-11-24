@@ -54,6 +54,7 @@ apex-dash-sala/
 ├── src/
 │   ├── painel.js / painel.css       simulação, alertas, tela cheia
 │   ├── controle.js / controle.css   botões, QR, estado do painel, espelho
+│   ├── layout.js                    regras do layout personalizável (grade, tamanhos, modelos)
 │   └── link.js                      conexão com o backend (usada pelos dois)
 ├── public/                 manifest e ícones (copiados como estão)
 ├── api/sala.js             backend na Vercel (função serverless)
@@ -105,7 +106,8 @@ Para testar no PC com o **mesmo Redis da Vercel**: copie `.env.example` para `.e
    - **iPhone:** o Safari não deixa sites entrarem em tela cheia. Use **Compartilhar → Adicionar à Tela de Início** e abra pelo ícone. A chave de silencioso corta os bipes.
 4. No PC, aperte **Óleo esquentando** (ou a tecla `2`). Em uns 12 s aparece a faixa âmbar de atenção; uns 10 s depois, o crítico vermelho, com moldura pulsante e tom contínuo.
 5. **Botão no volante** (ou `Espaço`): o tom vira lembrete, mas o alerta continua na tela.
-6. **Voltar ao normal** (`0`), depois **Parado** (`P`) para o professor navegar e editar o layout no celular.
+6. **Voltar ao normal** (`0`), depois **Parado** (`P`). O professor toca num quadro do celular e muda o que ele mostra, o tamanho ou o lugar (veja abaixo).
+7. Pelo controle, em **Layout do painel**, dá para trocar de modelo (Padrão, Corrida, Essencial). Teste também com o carro **em pista**: o pedido é recusado, porque o layout só muda parado.
 
 Teclas no controle: `1` água · `2` óleo · `3` turbo · `4` combustível · `0` normal · `Espaço` reconhecer · `P` parado/em pista.
 
@@ -114,3 +116,26 @@ Teclas no controle: `1` água · `2` óleo · `3` turbo · `4` combustível · `
 **Plano B sem internet:** abra o painel no próprio PC ligado ao projetor e use as mesmas teclas direto nele (`F` para tela cheia).
 
 Observação: o protótipo mede a **temperatura** do óleo, não a pressão. O botão **Óleo esquentando** dispara o alerta de óleo.
+
+## 6. Personalizar o painel (só com o carro parado)
+
+Com o carro parado, a faixa do topo avisa: **"PARADO · TOQUE NUM QUADRO PARA AJUSTAR"**. Também dá para entrar por **Ajustes → Editar layout**.
+
+- **Alça entre dois quadros** (modo de edição): arraste para cima ou para baixo para redimensionar. Ela encaixa em Compacto, Padrão ou Grande, e a dica no centro mostra o resultado enquanto você arrasta. Não aparece em colunas com 3 quadros compactos: ali qualquer aumento tiraria alguém da tela, então o tamanho muda pelo ajuste, que avisa antes.
+- **Tocar num quadro** abre o ajuste daquele lugar, cobrindo o centro e a outra coluna. A coluna editada continua à vista e mostra a mudança na hora.
+  - **O que mostrar:** Água, Óleo, Turbo, Combustível, Tempo de volta ou Vazio. Se o item já estiver em outro lugar, os dois trocam.
+  - **Tamanho deste lugar:** Compacto, Padrão, Grande ou Coluna inteira. Cada opção mostra uma miniatura e, **antes** do toque, o que vai acontecer com os vizinhos ("Óleo fica compacto", "Turbo sai da tela").
+  - **Mover para outro lugar:** depois, um toque no destino. **Arrastar** um quadro até outro faz o mesmo (atalho para quem já conhece).
+- **Modelos:** Padrão, Corrida (motor compacto à esquerda, volta grande à direita) e Essencial (três itens grandes).
+- **Desfazer** (até 30 passos) e **Concluir**. Tudo fica salvo no aparelho.
+
+O que muda com o tamanho:
+
+| Tamanho | Altura | Mostra |
+|---|---|---|
+| Compacto | 2 de 6 | nome, valor (52 px) e barra. Em alerta, a etiqueta ATENÇÃO/CRÍTICO ocupa o lugar do nome; o ícone continua |
+| Padrão | 3 de 6 | igual à v2 |
+| Grande | 4 de 6 | valor de 84 px, limites de atenção e crítico, máximo da sessão (no combustível: quantas voltas ainda dá) |
+| Coluna inteira | 6 de 6 | tudo do Grande + tendência dos últimos 90 s com as linhas dos limites (na volta: as 5 últimas voltas) |
+
+Regras que **não** mudam: centro (marcha, rotação, velocidade, delta) e faixa de alertas fixos; nada fora da grade; vazio não desloca vizinhos; no máximo 3 itens por coluna; textos em movimento com pelo menos 25 px e alertas com 31 px; alerta de item que não está na tela continua na faixa.

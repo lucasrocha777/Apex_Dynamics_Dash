@@ -21,7 +21,7 @@ const SIMS = [
   { k:"fuel",  key:"4", t:"Combustível acabando" }
 ];
 const LABEL = { water:"Água esquentando", oil:"Óleo esquentando", boost:"Turbo acima do limite", fuel:"Combustível acabando", clear:"Voltar ao normal",
-  ack:"Reconhecer alerta crítico", track:"Carro em pista", parked:"Carro parado", reboot:"Religar o painel", five:"Círculo de 5°", amb:"Luz ambiente" };
+  ack:"Reconhecer alerta crítico", padrao:"Layout Padrão", corrida:"Layout Corrida", essencial:"Layout Essencial", track:"Carro em pista", parked:"Carro parado", reboot:"Religar o painel", five:"Círculo de 5°", amb:"Luz ambiente" };
 
 $("#sims").innerHTML = SIMS.map(s => `<button class="sim" data-sim="${s.k}" type="button">${SYM[s.k]}<span>${s.t}<span class="on">ATIVO</span></span><kbd>${s.key}</kbd></button>`).join("")
   + `<button class="sim clear" data-sim="clear" type="button">Voltar ao normal<kbd>0</kbd></button>`;
@@ -123,12 +123,14 @@ function renderLive() {
   $("#facts").innerHTML = [
     st.on ? "Ligado" : "Na tela de abertura",
     st.car === "parked" ? "Carro parado" : "Carro em pista",
-    st.fs ? "Em tela cheia" : "Fora da tela cheia"
+    st.fs ? "Em tela cheia" : "Fora da tela cheia",
+    "Layout: " + ({ padrao:"Padrão", corrida:"Corrida", essencial:"Essencial", personalizado:"personalizado" }[st.layout] || "—")
   ].map(x => "<span>" + x + "</span>").join("");
   document.querySelectorAll("[data-sim]").forEach(b => b.classList.toggle("active", !!(st.sims && st.sims[b.dataset.sim])));
   setCarUI(st.car);
   if (document.activeElement !== $("#amb") && typeof st.amb === "number") $("#amb").value = st.amb;
   $("#five").checked = !!st.five;
+  document.querySelectorAll("[data-layout]").forEach(b => b.setAttribute("aria-pressed", b.dataset.layout === st.layout));
 }
 
 /* ---------- comandos ---------- */
@@ -154,6 +156,7 @@ $("#amb").addEventListener("input", e => { const now = Date.now(); clearTimeout(
   ambT = setTimeout(() => cmd("amb", +e.target.value, "Luz ambiente em " + e.target.value + "%"), 350); });
 $("#five").addEventListener("change", e => cmd("five", e.target.checked, e.target.checked ? "Mostrar círculo de 5°" : "Esconder círculo de 5°"));
 $("#reboot").addEventListener("click", () => cmd("reboot"));
+document.querySelectorAll("[data-layout]").forEach(b => b.addEventListener("click", () => cmd("layout", b.dataset.layout)));
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT" && e.target.type !== "checkbox" && e.target.type !== "range") return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;

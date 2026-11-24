@@ -26,18 +26,16 @@
 
   <div class="main">
     <div class="view on" id="v-painel">
-      <div id="freeBoard"></div><div class="pgrid" id="pgrid">
-        <div class="slot" id="s-E1" data-slot="E1"></div>
-        <div class="slot" id="s-E2" data-slot="E2"></div>
+      <div class="pgrid" id="pgrid">
+        <div class="side" id="side-L" data-side="L" aria-label="Coluna esquerda"></div>
         <div class="center" id="center">
           <svg class="rpm" id="rpmSvg" viewBox="0 0 576 450" aria-label="Marcha, velocidade e rotação"></svg>
           <div class="cbottom">
             <div class="delta" id="delta"><b id="dl">--</b><div><span class="dir" id="dlDir">VS. MELHOR VOLTA</span><span id="lapLine">VOLTA 4 · 0:00,0</span></div></div>
           </div>
-          <div class="lockc"><span>Fixo: marcha, rotação, velocidade e delta</span></div>
+          <div class="lockc"><span><b>Fixo: marcha, rotação, velocidade e delta</b><em id="editHint"></em></span></div>
         </div>
-        <div class="slot" id="s-D1" data-slot="D1"></div>
-        <div class="slot" id="s-D2" data-slot="D2"></div>
+        <div class="side" id="side-R" data-side="R" aria-label="Coluna direita"></div>
       </div>
     </div>
 
@@ -63,7 +61,7 @@
           <div class="srow" style="min-height:40px;margin-top:6px"><label>Testar alerta</label></div><div class="tests" id="tests"></div>
         </div>
         <div class="box"><h3>Som</h3>
-          <div class="srow"><label for="motorVolume">Motor simulado</label><input id="motorVolume" type="range" min="0" max="100" step="5"><output id="motorLevel"></output></div><button class="sw" id="swSnd" role="switch" aria-checked="true"><span class="lbl">Bipes de atenção<small>nível 2</small></span><span class="st"></span><span class="trk"></span></button>
+          <button class="sw" id="swSnd" role="switch" aria-checked="true"><span class="lbl">Bipes de atenção<small>nível 2</small></span><span class="st"></span><span class="trk"></span></button>
           <div class="srow"><label for="sVol">Volume</label><input type="range" id="sVol" min="40" max="100" step="5"><output id="oVol"></output></div>
           <p class="fixed">O alerta crítico sempre toca, em pelo menos 70% do volume.</p>
           <h3 style="margin-top:10px">Tema</h3>
@@ -87,23 +85,30 @@
     </div>
     <div class="editbar" id="editbar">
       <button id="eUndo" disabled>Desfazer</button>
-      <button id="eReset">Padrão</button>
+      <button id="ePresets">Modelos</button>
       <button class="primary" id="eDone">Concluir</button>
+      <button id="eCancel">Cancelar</button>
     </div>
   </div>
 
-    <button id="menuEdge" aria-label="Abrir menu de funções">❯</button>
-  <section id="functions" hidden aria-label="Funções">
-    <div id="functionList"><header><h2>Funções</h2><button data-action="close">Fechar ×</button></header>
-    <div class="functionGrid"><button data-action="layout"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18v16H3z M3 9h18 M11 9v11"/></svg>Editar layout</button><button data-action="sound"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h4l5-5v16l-5-5H3z M16 8q5 4 0 8 M19 4q9 8 0 16"/></svg>Som</button><button data-action="alerts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 21h20z M12 9v5 M12 16v2"/></svg>Alertas</button><button data-action="simulation"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h4l2-3h6l2 3h3v3h2v8h-5l-2 3H8l-3-4H3z M1 9v6"/></svg>Simulação</button><button data-action="laps"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 22V3q4-2 8 0t8 0v10q-4 2-8 0t-8 0 M9 4v7 M15 5v7"/></svg>Voltas</button><button data-action="original"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2 8 M3 4v7h7 M12 7v6l4 2"/></svg>Painel original</button></div></div>
-    <div id="simOptions" hidden><header><h2>Simulação</h2><button data-sim="back">Voltar</button></header>
-    <div class="functionGrid"><button data-sim="water">Aquecer água</button><button data-sim="oil">Aquecer óleo</button><button data-sim="boost">Elevar turbo</button><button data-sim="fuel">Baixar combustível</button><button data-sim="clear">Normalizar</button><button data-sim="track">Entrar em pista</button></div></div>
-  </section>
-  <div id="layoutTools" hidden><details id="addGauge"><summary>+ Parâmetro</summary><div id="gaugeOptions"></div></details><select id="gaugeStyle" aria-label="Formato do instrumento"><option value="bar">Barra</option><option value="dial">Circular</option><option value="number">Digital</option></select><label>Cor <input type="color" id="gaugeColor"></label><button id="removeGauge">Remover</button><label class="fileBtn">Imagem de fundo<input id="backFile" type="file" accept="image/*"></label><button id="clearBg">Tirar fundo</button><button id="restoreLayout">Painel original</button><button id="cancelLayout">Cancelar</button><button id="saveLayout">Salvar</button></div>
-  <div class="chooser" id="chooser" role="dialog" aria-modal="true" aria-labelledby="chTitle">
-    <h3 id="chTitle">Posição</h3><p id="chSub">Escolha o que mostrar nesta posição.</p>
-    <div class="opts" id="chOpts"></div>
-    <button class="cancel" id="chCancel">Cancelar</button>
+  <div class="insp" id="insp" role="dialog" aria-labelledby="inTitle">
+    <div class="inHead"><h3 id="inTitle">Lugar</h3><p id="inSub" role="status" aria-live="polite"></p></div>
+    <div class="inBody">
+      <section><h4>O que mostrar</h4><div class="inItems" id="inItems"></div></section>
+      <section><h4>Tamanho deste lugar</h4><div class="inSizes" id="inSizes"></div></section>
+    </div>
+    <div class="inFoot">
+      <button id="inUndo" disabled>Desfazer</button>
+      <button id="inMove">Mover para outro lugar</button>
+      <button class="primary" id="inDone">Pronto</button>
+    </div>
+  </div>
+
+  <div class="presets" id="presets" role="dialog" aria-labelledby="prTitle">
+    <h3 id="prTitle">Modelos de layout</h3>
+    <p>Comece por um modelo e ajuste depois. O modelo troca as duas colunas; o centro não muda. Dá para desfazer.</p>
+    <div class="prOpts" id="prOpts"></div>
+    <button class="cancel" id="prCancel">Cancelar</button>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastText"></span><button id="toastBtn" style="display:none">Desfazer</button></div>
